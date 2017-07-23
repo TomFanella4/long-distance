@@ -6,7 +6,8 @@ const
   bodyParser = require('body-parser'),
   crypto = require('crypto'),
   express = require('express'),
-  request = require('request');
+  request = require('request'),
+  dateDiff = require('date-diff');
 
 var app = express();
 app.set('port', process.env.PORT || 3000);
@@ -31,6 +32,18 @@ const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN;
 // URL where the app is running (include protocol). Used to point to scripts and 
 // assets located at this address. 
 const SERVER_URL = process.env.SERVER_URL;
+
+const COUNTDOWN_DATE = new Date('2017-07-26T21:00:00-07:00');
+const INTERVALS = {};
+
+const helpText = `
+Welcome to the Reminder Bot! This bot will help remind you when we will be together again! <3
+
+Commands: 
+time (t) - Check the remaining time until we are together!
+subscribe (s) - Subscribe to get a notification once a day!
+unsubscribe (u) - Unsubscribe from your subscription :(
+`
 
 if (!(APP_SECRET && VALIDATION_TOKEN && PAGE_ACCESS_TOKEN && SERVER_URL)) {
   console.error("Missing config values");
@@ -149,10 +162,52 @@ function receivedMessage(event) {
   var messageAttachments = message.attachments;
 
   if (messageText) {
-      sendTextMessage(senderID, messageText);
+    switch (messageText) {
+      case 'time':
+      case 't':
+        sendTextMessage(senderID, calculateTimeLeft())
+        break;
+
+      case 'subscribe':
+      case 's':
+        INTERVALS[senderID] = setInterval(senderID => sendTextMessage(senderID, 
+          calculateTimeLeft()), 600000, senderID);
+        sendTextMessage(senderID, 'You have subscribed to recieve messages once a day');
+        break;
+
+      case 'unsubscribe':
+      case 'u':
+        if (INTERVALS[senderID]) {
+          clearInterval(INTERVALS[senderID]);
+          sendTextMessage(senderID, 'You have unsubscribed from recieving messages');
+        }
+        break;
+    
+      default:
+        sendTextMessage(senderID, helpText);
+        break;
+    }
   } else if (messageAttachments) {
     sendTextMessage(senderID, "Message with attachment received");
   }
+}
+
+function calculateTimeLeft() {
+  const diff = new dateDiff(COUNTDOWN_DATE, new Date());
+  
+  const timeLeftStrings = ['Years', 'Months', 'Weeks', 'Days', 'Hours', 'Minutes', 'Seconds'];
+  
+  let timeLeftArr = [diff.years(), diff.months() % 12, diff.weeks() % 4, 
+    diff.days() % 7, diff.hours() % 24, diff.minutes() % 60, diff.seconds() % 60];
+
+  timeLeftArr = timeLeftArr.map((timeLeft, i) => {
+    if (Math.floor(timeLeft))
+      return `${Math.floor(timeLeft)} ${timeLeftStrings[i]}`;
+    return null;
+  })
+  .filter(timeLeft => timeLeft?true:false);
+  
+  return `Only ${timeLeftArr.join(' ')} until we are together again! <3 Tom`
 }
 
 /*
@@ -165,8 +220,7 @@ function sendTextMessage(recipientId, messageText) {
       id: recipientId
     },
     message: {
-      text: messageText,
-      metadata: "DEVELOPER_DEFINED_METADATA"
+      text: messageText
     }
   };
 

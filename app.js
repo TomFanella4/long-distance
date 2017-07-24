@@ -161,8 +161,8 @@ function receivedMessage(event) {
   var messageText = message.text;
   var messageAttachments = message.attachments;
 
-  if (messageText.toLowerCase()) {
-    switch (messageText) {
+  if (messageText) {
+    switch (messageText.toLowerCase()) {
       case 'time':
       case 't':
         sendTextMessage(senderID, calculateTimeLeft())

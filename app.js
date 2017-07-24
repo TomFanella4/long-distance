@@ -170,6 +170,9 @@ function receivedMessage(event) {
 
       case 'subscribe':
       case 's':
+        if (INTERVALS[senderID]) {
+          clearInterval(INTERVALS[senderID]);
+        }
         INTERVALS[senderID] = setInterval(senderID => sendTextMessage(senderID, 
           calculateTimeLeft()), 86400000, senderID);
         sendTextMessage(senderID, 'You have subscribed to recieve messages once a day');

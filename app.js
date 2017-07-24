@@ -161,7 +161,7 @@ function receivedMessage(event) {
   var messageText = message.text;
   var messageAttachments = message.attachments;
 
-  if (messageText) {
+  if (messageText.toLowerCase()) {
     switch (messageText) {
       case 'time':
       case 't':
@@ -171,8 +171,9 @@ function receivedMessage(event) {
       case 'subscribe':
       case 's':
         INTERVALS[senderID] = setInterval(senderID => sendTextMessage(senderID, 
-          calculateTimeLeft()), 600000, senderID);
+          calculateTimeLeft()), 86400000, senderID);
         sendTextMessage(senderID, 'You have subscribed to recieve messages once a day');
+        sendTextMessage(senderID, calculateTimeLeft())
         break;
 
       case 'unsubscribe':

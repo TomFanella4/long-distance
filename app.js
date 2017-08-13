@@ -5,6 +5,7 @@
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const express = require('express');
+const mongoose = require('mongoose');
 
 const webhook = require('./routes/webhook');
 const helpers = require('./helpers/common');
@@ -18,6 +19,9 @@ if (!(helpers.APP_SECRET && helpers.VALIDATION_TOKEN && helpers.PAGE_ACCESS_TOKE
   console.error("Missing env values");
   process.exit(1);
 }
+
+mongoose.connect(process.env.MONGODB_URI);
+mongoose.Promise = global.Promise;
 
 app.use('/', webhook);
 

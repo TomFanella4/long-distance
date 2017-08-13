@@ -1,6 +1,9 @@
-const request = require('request');
+const axios = require('axios');
 const moment = require('moment');
+const querystring = require('querystring');
 require('moment-precise-range-plugin');
+
+const User = require('./../models/user');
 
 // App Secret can be retrieved from the App Dashboard
 const APP_SECRET = process.env.MESSENGER_APP_SECRET;
@@ -22,11 +25,52 @@ Commands:
 time (t) - Check the remaining time until we are together!
 subscribe (s) - Subscribe to get a notification once a day!
 unsubscribe (u) - Unsubscribe from your subscription :(
-`
+`;
 
-function calculateTimeLeft() {
-  let diffStr = moment().preciseDiff(COUNTDOWN_DATE);
-  return `Only ${diffStr} until we are together again! <3 Tom`
+function getUserInfo(senderID) {
+  return new Promise((resolve, reject) => {
+    const qs = querystring.stringify({
+      fields: 'first_name,last_name,locale,timezone,gender',
+      access_token: PAGE_ACCESS_TOKEN
+    });
+    axios.get(`https://graph.facebook.com/v2.6/${senderID}?${qs}`)
+    .then(body => resolve(body.data))
+    .catch(error => reject(error));
+  });
+}
+
+function getExistingUserAndCreate(senderID) {
+  return new Promise((resolve, reject) => {
+    User.findOne({id: senderID}).exec()
+    .then(user => {
+      console.log(user);
+      if (!user) {
+        getUserInfo(senderID)
+        .then(user => {
+          let newUser = new User({
+            id: senderID,
+            context: 'date',
+            firstName: user.first_name,
+            lastName: user.last_name,
+            local: user.locale,
+            timezone: user.timezone,
+            gender: user.gender
+          })
+          newUser.save();
+          sendTextMessage(senderID, `Hello ${user.first_name} ${user.last_name}!`);
+          resolve(newUser);
+        })
+      } else {
+        resolve(user);        
+      }
+    })
+  })
+  .catch(error => reject(error));
+}
+
+function calculateTimeLeft(countdownDate) {
+  let diffStr = moment().preciseDiff(countdownDate);
+  return `Only ${diffStr} until you are reunited with your love!`
 }
 
 /*
@@ -36,53 +80,101 @@ function calculateTimeLeft() {
  * 
  */
 function receivedMessage(event) {
-  var senderID = event.sender.id;
+  let senderID = event.sender.id;
   console.log(senderID);
-  var recipientID = event.recipient.id;
-  var timeOfMessage = event.timestamp;
-  var message = event.message;
+  let recipientID = event.recipient.id;
+  let timeOfMessage = event.timestamp;
+  let message = event.message;
 
   console.log("Received message for user %d and page %d at %d with message:", 
-    senderID, recipientID, timeOfMessage);
+  senderID, recipientID, timeOfMessage);
   console.log(JSON.stringify(message));
 
-  // You may get a text or attachment but not both
-  var messageText = message.text;
-  var messageAttachments = message.attachments;
+  sendAction(senderID, 'typing_on');
 
-  if (messageText) {
-    switch (messageText.toLowerCase()) {
-      case 'time':
-      case 't':
-        sendTextMessage(senderID, calculateTimeLeft())
-        break;
+  // Check if the current user exists 
+  // If not, create it
+  getExistingUserAndCreate(senderID)
+  .then(user => {
+    // You may get a text or attachment but not both
+    let messageText = message.text;
+    let messageAttachments = message.attachments;
 
-      case 'subscribe':
-      case 's':
-        if (INTERVALS[senderID]) {
-          clearInterval(INTERVALS[senderID]);
+    if (messageText) {
+
+      // Check if user has entered a proper countdown date
+      // TODO: change format
+      if (user.context === 'date') {
+        let newDate = parseInt(messageText.trim());
+        if (!isNaN(newDate)) {
+          user.countdownDate = newDate;
+          user.context = 'countdown';
+          user.save();
+          sendTextMessage(senderID, `Successfully saved new countdown date!`);
+        } else {
+          sendTextMessage(senderID, `Please enter your countdown date`);
         }
-        INTERVALS[senderID] = setInterval(senderID => sendTextMessage(senderID, 
-          calculateTimeLeft()), 86400000, senderID);
-        sendTextMessage(senderID, 'You have subscribed to recieve messages once a day');
-        sendTextMessage(senderID, calculateTimeLeft())
-        break;
+        return;
+      }
 
-      case 'unsubscribe':
-      case 'u':
-        if (INTERVALS[senderID]) {
-          clearInterval(INTERVALS[senderID]);
-          sendTextMessage(senderID, 'You have unsubscribed from recieving messages');
-        }
-        break;
-    
-      default:
-        sendTextMessage(senderID, helpText);
-        break;
+      let timeRemaining = calculateTimeLeft(user.countdownDate);
+
+      switch (messageText.toLowerCase()) {
+        case 'time':
+        case 't':
+          sendTextMessage(senderID, timeRemaining)
+          break;
+
+        case 'date':
+        case 'd':
+          user.context = 'date';
+          user.save();
+          sendTextMessage(senderID, `Please enter your countdown date`);
+          break;
+
+        case 'subscribe':
+        case 's':
+          if (INTERVALS[senderID]) {
+            clearInterval(INTERVALS[senderID]);
+          }
+          INTERVALS[senderID] = setInterval(senderID => sendTextMessage(senderID, 
+            timeRemaining), 86400000, senderID);
+          sendTextMessage(senderID, 'You have subscribed to recieve messages once a day');
+          sendTextMessage(senderID, timeRemaining)
+          break;
+
+        case 'unsubscribe':
+        case 'u':
+          if (INTERVALS[senderID]) {
+            clearInterval(INTERVALS[senderID]);
+            sendTextMessage(senderID, 'You have unsubscribed from recieving messages');
+          }
+          break;
+
+        case 'help':
+        case 'h':
+          sendTextMessage(senderID, helpText);
+          break;
+      
+        default:
+          sendTextMessage(senderID, 'Didn\'t quite get that');
+          break;
+      }
+    } else if (messageAttachments) {
+      sendTextMessage(senderID, "<3");
     }
-  } else if (messageAttachments) {
-    sendTextMessage(senderID, "Message with attachment received");
-  }
+  });
+}
+
+function sendAction(recipientId, action) {
+  let messageData = {
+    recipient: {
+      id: recipientId
+    },
+    sender_action: action
+  };
+
+  callSendAPI(messageData);
 }
 
 /*
@@ -90,7 +182,7 @@ function receivedMessage(event) {
  *
  */
 function sendTextMessage(recipientId, messageText) {
-  var messageData = {
+  let messageData = {
     recipient: {
       id: recipientId
     },
@@ -108,28 +200,23 @@ function sendTextMessage(recipientId, messageText) {
  *
  */
 function callSendAPI(messageData) {
-  request({
-    uri: 'https://graph.facebook.com/v2.10/me/messages',
-    qs: { access_token: PAGE_ACCESS_TOKEN },
-    method: 'POST',
-    json: messageData
+  const qs = querystring.stringify({
+    access_token: PAGE_ACCESS_TOKEN
+  });
+  axios.post(`https://graph.facebook.com/v2.10/me/messages?${qs}`, messageData)
+  .then(res => {
+    let recipientId = res.data.recipient_id;
+    let messageId = res.data.message_id;
 
-  }, function (error, response, body) {
-    if (!error && response.statusCode == 200) {
-      var recipientId = body.recipient_id;
-      var messageId = body.message_id;
-
-      if (messageId) {
-        console.log("Successfully sent message with id %s to recipient %s", 
-          messageId, recipientId);
-      } else {
-      console.log("Successfully called Send API for recipient %s", 
-        recipientId);
-      }
+    if (messageId) {
+      console.log("Successfully sent message with id %s to recipient %s", 
+        messageId, recipientId);
     } else {
-      console.error("Failed calling Send API", response.statusCode, response.statusMessage, body.error);
+    console.log("Successfully called Send API for recipient %s", 
+      recipientId);
     }
-  });  
+  })
+  .catch(error => console.error("Failed calling Send API", error))
 }
 
 module.exports = {

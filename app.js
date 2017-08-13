@@ -15,12 +15,13 @@ app.set('port', process.env.PORT || 3000);
 app.use(bodyParser.json({ verify: verifyRequestSignature }));
 app.use(express.static('public'));
 
-if (!(helpers.APP_SECRET && helpers.VALIDATION_TOKEN && helpers.PAGE_ACCESS_TOKEN)) {
+if (!(helpers.APP_SECRET && helpers.VALIDATION_TOKEN &&
+      helpers.PAGE_ACCESS_TOKEN && helpers.MONGODB_URI)) {
   console.error("Missing env values");
   process.exit(1);
 }
 
-mongoose.connect(process.env.MONGODB_URI);
+mongoose.connect(helpers.MONGODB_URI);
 mongoose.Promise = global.Promise;
 
 app.use('/', webhook);

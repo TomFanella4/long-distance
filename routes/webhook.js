@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const helpers = require('../helpers/common');
+const messagesHelper = require('../helpers/messages');
 
 /*
  * Use your own validation token. Check that the token used in the Webhook 
@@ -38,7 +39,7 @@ router.post('/webhook', function (req, res) {
       // Iterate over each messaging event
       pageEntry.messaging.forEach(function(messagingEvent) {
         if (messagingEvent.message) {
-          helpers.receivedMessage(messagingEvent);
+          messagesHelper.receivedMessage(messagingEvent);
         } else {
           console.log("Webhook received unknown messagingEvent: ", messagingEvent);
         }

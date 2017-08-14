@@ -35,11 +35,10 @@ function receivedMessage(event) {
     if (messageText) {
 
       // Check if user has entered a proper countdown date
-      // TODO: change format
       if (user.context === 'date') {
-        let newDate = parseInt(messageText.trim());
-        if (!isNaN(newDate)) {
-          user.countdownDate = newDate;
+        const newDate = moment(messageText, 'MM-DD-YYYY').utc();
+        if (newDate.isValid()) {
+          user.countdownDate = newDate.valueOf();
           user.context = 'countdown';
           user.save();
           sendTextMessage(senderID, `Successfully saved new countdown date!`);
@@ -52,12 +51,11 @@ function receivedMessage(event) {
         return;
       }
 
-      let timeRemaining = helpers.calculateTimeLeft(user.countdownDate);
-
       switch (messageText.toLowerCase()) {
         case 'time':
         case 't':
-          sendTextMessage(senderID, timeRemaining)
+          const timeRemaining = helpers.calculateTimeLeft(user.countdownDate);
+          sendTextMessage(senderID, timeRemaining);
           break;
 
         case 'date':

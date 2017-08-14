@@ -44,7 +44,7 @@ function calculateNextRandomTime() {
 }
 
 function calculateTimeLeft(countdownDate) {
-  let diffStr = moment().preciseDiff(countdownDate);
+  const diffStr = moment().preciseDiff(countdownDate);
   return `Only ${diffStr} until you are reunited with your love!`
 }
 

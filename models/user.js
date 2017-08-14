@@ -27,7 +27,7 @@ userSchema.statics.findExistingUserAndCreate = function (senderID) {
           .then(user => {
             let newUser = new this({
               id: senderID,
-              context: 'date',
+              context: 'name',
               firstName: user.first_name,
               lastName: user.last_name,
               local: user.locale,

@@ -18,14 +18,17 @@ const MONGODB_URI = process.env.MONGODB_URI;
 const COUNTDOWN_DATE = '2017-10-07 00:00:00-05:00';
 
 const helpText = `
-Welcome to the Reminder Bot! This bot will help remind you when we will be together again! <3
+Here are some useful commands:
 
-Commands: 
-time (t) - Check the remaining time until we are together!
-date (d) - Change the current countdown date.
-subscribe (s) - Subscribe to get a notification once a day!
-unsubscribe (u) - Unsubscribe from your subscription :(
+time [t] - Check the remaining time until you are together!
+date [d] - Change the current countdown date
+name [n] - Change the name of your significant other
+subscribe [s] - Subscribe to get a notification once a day!
+unsubscribe [u] - Unsubscribe from your subscription :(
 `;
+
+const welcomeText = `Let's make long distance a little easier! 
+But first, please tell me the name of your significant other`
 
 /*
  * Creates a new random date between 8 am and 8 pm of the following day.
@@ -43,9 +46,9 @@ function calculateNextRandomTime() {
   .seconds(randomSec);
 }
 
-function calculateTimeLeft(countdownDate) {
+function calculateTimeLeft(countdownDate, significantOther) {
   const diffStr = moment().preciseDiff(countdownDate);
-  return `Only ${diffStr} until you are reunited with your love!`
+  return `Only ${diffStr} until you are reunited with ${significantOther}!`
 }
 
 function getUserInfo(senderID) {
@@ -91,6 +94,7 @@ module.exports = {
     PAGE_ACCESS_TOKEN,
     MONGODB_URI,
     helpText,
+    welcomeText,
     calculateNextRandomTime,
     calculateTimeLeft,
     getUserInfo,

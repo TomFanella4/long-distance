@@ -10,7 +10,7 @@ const userSchema = mongoose.Schema({
     firstName: String,
     lastName: String,
     local: String,
-    timezone: String,
+    timezone: Number,
     gender: String,
     significantOther: String,
     countdownDate: Number,

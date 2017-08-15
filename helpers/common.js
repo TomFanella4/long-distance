@@ -34,18 +34,25 @@ But first, please tell me the name of your significant other`
  * Creates a new random date between 8 am and 8 pm of the following day.
  * 
 */
-function calculateNextRandomTime() {
-  let randomHour = Math.floor(Math.random() * (20 - 8)) + 8;
-  let randomMin  = Math.floor(Math.random() * (59 - 0)) + 0;
-  let randomSec  = Math.floor(Math.random() * (59 - 0)) + 0;
+function calculateNextRandomTime(timezone) {
+  const randomHour = Math.floor(Math.random() * (20 - 8)) + 8;
+  const randomMin  = Math.floor(Math.random() * (59 - 0)) + 0;
+  const randomSec  = Math.floor(Math.random() * (59 - 0)) + 0;
 
   return moment()
+  .utcOffset(timezone)
   .add(1, 'days')
   .hours(randomHour)
   .minutes(randomMin)
   .seconds(randomSec);
 }
 
+/*
+ * Calculate the time from now until the countdown date
+ * Note: We can use a generic moment (without timezone)
+ * due to how diff algorithm works
+ * 
+*/
 function calculateTimeLeft(countdownDate, significantOther) {
   const diffStr = moment().preciseDiff(countdownDate);
   return `Only ${diffStr} until you are reunited with ${significantOther}!`

@@ -172,11 +172,12 @@ function recievedPostback(event) {
 function sendRemainingAndUpdateTimeout(user) {
   const timeRemaining = helpers.calculateTimeLeft(user.countdownDate, user.significantOther);
   sendTextMessage(user.id, timeRemaining);
-  updateTimeout(user, helpers.calculateNextRandomTime());
+  updateTimeout(user, helpers.calculateNextRandomTime(user.timezone));
 }
 
 function updateTimeout(user, nextUpdate) {
-  const msToUpdate = nextUpdate.diff(moment());
+  const currentDate = moment().utcOffset(user.timezone);
+  const msToUpdate = nextUpdate.diff(currentDate);
 
   TIMEOUTS[user.id] = setTimeout(sendRemainingAndUpdateTimeout, msToUpdate, user);
 

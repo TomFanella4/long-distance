@@ -1,9 +1,18 @@
 const moment = require('moment');
+const mongoose = require('mongoose');
 
 const User = require('./../models/user');
 const helpers = require('./common');
 
-const TIMEOUTS = {};
+const TIMEOUTS = helpers.TIMEOUTS;
+
+mongoose.connection.once('open', loadIntervalsFromDB);
+
+function loadIntervalsFromDB() {
+  User.find().exec()
+  .then(users => users.forEach(user => updateTimeout(user, moment(user.nextUpdate))))
+  .catch(error => console.log(error));
+}
 
 /*
  * Message Event
@@ -35,6 +44,12 @@ function receivedMessage(event) {
     if (messageText) {
 
       switch(user.context) {
+        case 'start':
+          sendTextMessage(senderID, `Hello ${user.firstName}! ${helpers.welcomeText}`);
+          user.context = 'name';
+          user.save();
+          break;
+
         case 'name':
           user.significantOther = messageText;
           if (!user.countdownDate) {
@@ -101,7 +116,7 @@ function runCommand(recipientId, messageText, user) {
         sendTextMessage(recipientId, 'You already have a subscription');
         break;
       }
-      sendMessageAndUpdateTimeout(recipientId, user);
+      sendRemainingAndUpdateTimeout(user);
       sendTextMessage(recipientId, 'You have subscribed to recieve messages once a day');
       break;
 
@@ -145,6 +160,8 @@ function recievedPostback(event) {
           sendTextMessage(senderID, `Welcome back ${user.firstName}!`);
         } else {
           sendTextMessage(senderID, `Hello ${user.firstName}! ${helpers.welcomeText}`);
+          user.context = 'name';
+          user.save();
         }
       })
       .catch(error => console.log(error));
@@ -152,14 +169,16 @@ function recievedPostback(event) {
   }
 }
 
-function sendMessageAndUpdateTimeout(recipientId, user) {
+function sendRemainingAndUpdateTimeout(user) {
   const timeRemaining = helpers.calculateTimeLeft(user.countdownDate, user.significantOther);
-  sendTextMessage(recipientId, timeRemaining);
-  
-  const nextUpdate = helpers.calculateNextRandomTime();
+  sendTextMessage(user.id, timeRemaining);
+  updateTimeout(user, helpers.calculateNextRandomTime());
+}
+
+function updateTimeout(user, nextUpdate) {
   const msToUpdate = nextUpdate.diff(moment());
 
-  TIMEOUTS[recipientId] = setTimeout(sendMessageAndUpdateTimeout, msToUpdate, recipientId, user);
+  TIMEOUTS[user.id] = setTimeout(sendRemainingAndUpdateTimeout, msToUpdate, user);
 
   user.nextUpdate = nextUpdate.valueOf();
   user.save();

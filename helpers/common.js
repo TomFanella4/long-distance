@@ -14,8 +14,8 @@ const PAGE_ACCESS_TOKEN = process.env.MESSENGER_PAGE_ACCESS_TOKEN;
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Temporary global countdown date and list of intervals
-const COUNTDOWN_DATE = '2017-10-07 00:00:00-05:00';
+// Global map of id -> countdown timeout
+const TIMEOUTS = {};
 
 const helpText = `
 Here are some useful commands:
@@ -93,6 +93,7 @@ module.exports = {
     VALIDATION_TOKEN,
     PAGE_ACCESS_TOKEN,
     MONGODB_URI,
+    TIMEOUTS,
     helpText,
     welcomeText,
     calculateNextRandomTime,

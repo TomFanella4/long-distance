@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 
 const User = require('./../models/user');
 const helpers = require('./common');
+const strings = require('./strings');
 
 const TIMEOUTS = helpers.TIMEOUTS;
 
@@ -42,10 +43,9 @@ function receivedMessage(event) {
     let messageAttachments = message.attachments;
 
     if (messageText) {
-
       switch(user.context) {
         case 'start':
-          sendTextMessage(senderID, `Hello ${user.firstName}! ${helpers.welcomeText}`);
+          sendTextMessage(senderID, `Hello ${user.firstName}! ${strings.welcomeText1}`);
           user.context = 'name';
           user.save();
           break;
@@ -54,7 +54,7 @@ function receivedMessage(event) {
           user.significantOther = messageText;
           if (!user.countdownDate) {
             user.context = 'date';
-            sendTextMessage(senderID, `Perfect! Next, please enter when you will see ${messageText} again (MM/DD/YYYY)`);
+            sendTextMessage(senderID, strings.welcomeText2(messageText));
           } else {
             user.context = 'command';
             sendTextMessage(senderID, `Saved ${messageText} <3`);
@@ -69,10 +69,10 @@ function receivedMessage(event) {
             user.countdownDate = newDate.valueOf();
             user.context = 'command';
             user.save();
-            sendTextMessage(senderID, `That's closer than you think! I've just subscribed you to recieve spontanious messages! To modify this type help`);
+            sendTextMessage(senderID, strings.welcomeText3);
             runCommand(senderID, 's', user);
           } else {
-            sendTextMessage(senderID, 'Please enter a valid date');            
+            sendTextMessage(senderID, strings.errorDateText);            
           }
           break;
 
@@ -80,8 +80,6 @@ function receivedMessage(event) {
           runCommand(senderID, messageText, user);
           break;
       }
-
-      
     } else if (messageAttachments) {
       sendTextMessage(senderID, "<3");
     }
@@ -100,24 +98,24 @@ function runCommand(recipientId, messageText, user) {
     case 'd':
       user.context = 'date';
       user.save();
-      sendTextMessage(recipientId, `Please enter the next date you'll see your significant other`);
+      sendTextMessage(recipientId, strings.inputDateText);
       break;
 
     case 'name':
     case 'n':
       user.context = 'name';
       user.save();
-      sendTextMessage(recipientId, 'Please enter the name of your significant other');
+      sendTextMessage(recipientId, strings.inputNameText);
       break;
 
     case 'subscribe':
     case 's':
       if (TIMEOUTS[recipientId]) {
-        sendTextMessage(recipientId, 'You already have a subscription');
+        sendTextMessage(recipientId, strings.errorSubscriptionText);
         break;
       }
       sendRemainingAndUpdateTimeout(user);
-      sendTextMessage(recipientId, 'You have subscribed to recieve messages once a day');
+      sendTextMessage(recipientId, strings.successSubscriptionText);
       break;
 
     case 'unsubscribe':
@@ -128,19 +126,21 @@ function runCommand(recipientId, messageText, user) {
         user.nextUpdate = null;
         user.save();
 
-        sendTextMessage(recipientId, 'You have unsubscribed from recieving messages');
+        sendTextMessage(recipientId, strings.successUnsubscriptionText);
       } else {
-        sendTextMessage(recipientId, 'You have no current subscriptions');
+        sendTextMessage(recipientId, strings.errrorUnsubscriptionText);
       }
       break;
 
     case 'help':
     case 'h':
-      sendTextMessage(recipientId, helpers.helpText);
+      const countdownDate = moment(user.countdownDate).utcOffset(user.timezone);
+      sendTextMessage(recipientId,
+        strings.helpText(user.significantOther, countdownDate.format('MMMM Do YYYY')));
       break;
   
     default:
-      sendTextMessage(recipientId, 'Didn\'t quite get that. Try typing help');
+      sendTextMessage(recipientId, strings.errorCommandText);
       break;
   }
 }
@@ -159,7 +159,7 @@ function recievedPostback(event) {
         if (user.significantOther) {
           sendTextMessage(senderID, `Welcome back ${user.firstName}!`);
         } else {
-          sendTextMessage(senderID, `Hello ${user.firstName}! ${helpers.welcomeText}`);
+          sendTextMessage(senderID, `Hello ${user.firstName}! ${strings.welcomeText}`);
           user.context = 'name';
           user.save();
         }

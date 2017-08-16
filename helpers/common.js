@@ -3,6 +3,8 @@ const moment = require('moment');
 const querystring = require('querystring');
 require('moment-precise-range-plugin');
 
+const strings = require('./strings');
+
 // App Secret can be retrieved from the App Dashboard
 const APP_SECRET = process.env.MESSENGER_APP_SECRET;
 
@@ -16,19 +18,6 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 // Global map of id -> countdown timeout
 const TIMEOUTS = {};
-
-const helpText = `
-Here are some useful commands:
-
-time [t] - Check the remaining time until you are together!
-date [d] - Change the current countdown date
-name [n] - Change the name of your significant other
-subscribe [s] - Subscribe to get a notification once a day!
-unsubscribe [u] - Unsubscribe from your subscription :(
-`;
-
-const welcomeText = `Let's make long distance a little easier! 
-But first, please tell me the name of your significant other`
 
 /*
  * Creates a new random date between 8 am and 8 pm of the following day.
@@ -55,7 +44,7 @@ function calculateNextRandomTime(timezone) {
 */
 function calculateTimeLeft(countdownDate, significantOther) {
   const diffStr = moment().preciseDiff(countdownDate);
-  return `Only ${diffStr} until you are reunited with ${significantOther}!`
+  return strings.timeRemainingText(diffStr, significantOther);
 }
 
 function getUserInfo(senderID) {
@@ -101,8 +90,6 @@ module.exports = {
     PAGE_ACCESS_TOKEN,
     MONGODB_URI,
     TIMEOUTS,
-    helpText,
-    welcomeText,
     calculateNextRandomTime,
     calculateTimeLeft,
     getUserInfo,

@@ -11,7 +11,11 @@ mongoose.connection.once('open', loadIntervalsFromDB);
 
 function loadIntervalsFromDB() {
   User.find().exec()
-  .then(users => users.forEach(user => updateTimeout(user, moment(user.nextUpdate))))
+  .then(users => users.forEach(user => {
+    if (user.nextUpdate) {
+      updateTimeout(user, moment(user.nextUpdate));
+    }
+  }))
   .catch(error => console.log(error));
 }
 
@@ -183,9 +187,14 @@ function updateTimeout(user, nextUpdate) {
   const currentDate = moment().utcOffset(user.timezone);
   const msToUpdate = nextUpdate.diff(currentDate);
 
-  TIMEOUTS[user.id] = setTimeout(sendRemainingAndUpdateTimeout, msToUpdate, user);
-
-  user.nextUpdate = nextUpdate.valueOf();
+  if (msToUpdate > 0) {
+    TIMEOUTS[user.id] = setTimeout(sendRemainingAndUpdateTimeout, msToUpdate, user);
+    user.nextUpdate = nextUpdate.valueOf();
+  } else {
+    sendTextMessage(user.id, strings.endingText(user.significantOther));
+    user.nextUpdate = null;
+    user.context = 'date';
+  }
   user.save();
 }
 

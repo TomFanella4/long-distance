@@ -68,7 +68,7 @@ function receivedMessage(event) {
 
         // Check if user has entered a proper countdown date        
         case 'date':
-          const newDate = moment(messageText, 'MM-DD-YYYY').utcOffset(user.timezone);
+          const newDate = moment(messageText, 'MM-DD-YYYY').utcOffset(user.timezone, true);
           const newDateFormatted = newDate.format('MMMM Do YYYY');
           if (newDate.isValid() && newDate.diff(moment()) >= 0) {
             user.countdownDate = newDate.valueOf();

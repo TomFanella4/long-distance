@@ -64,11 +64,15 @@ function receivedMessage(event) {
 
         // Check if user has entered a proper countdown date        
         case 'date':
-          const newDate = moment(messageText, 'MM-DD-YYYY').utc();
-          if (newDate.isValid()) {
+          const newDate = moment(messageText, 'MM-DD-YYYY').utcOffset(user.timezone);
+          if (newDate.isValid() && newDate.diff(moment()) >= 0) {
             user.countdownDate = newDate.valueOf();
             user.context = 'command';
             user.save();
+            if (user.nextUpdate) {
+              sendTextMessage(senderID, strings.successDateText(newDate.format('MMMM Do YYYY')));
+              break;
+            }
             sendTextMessage(senderID, strings.welcomeText3);
             runCommand(senderID, 's', user);
           } else {

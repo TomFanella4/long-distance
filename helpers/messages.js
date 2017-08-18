@@ -168,7 +168,7 @@ function recievedPostback(event) {
         if (user.significantOther) {
           sendTextMessage(senderID, `Welcome back ${user.firstName}!`);
         } else {
-          sendTextMessage(senderID, `Hello ${user.firstName}! ${strings.welcomeText}`);
+          sendTextMessage(senderID, `Hello ${user.firstName}! ${strings.welcomeText1}`);
           user.context = 'name';
           user.save();
         }

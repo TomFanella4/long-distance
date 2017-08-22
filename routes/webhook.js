@@ -41,7 +41,7 @@ router.post('/webhook', function (req, res) {
         if (messagingEvent.message) {
           messagesHelper.receivedMessage(messagingEvent);
         } else if (messagingEvent.postback) {
-          messagesHelper.recievedPostback(messagingEvent);
+          messagesHelper.receivedPostback(messagingEvent);
         } else {
           console.log("Webhook received unknown messagingEvent: ", messagingEvent);
         }

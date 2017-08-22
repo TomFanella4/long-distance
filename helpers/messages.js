@@ -154,7 +154,7 @@ function runCommand(recipientId, messageText, user) {
   }
 }
 
-function recievedPostback(event) {
+function receivedPostback(event) {
   let senderID = event.sender.id;
   console.log(senderID);
   let postback = event.postback;
@@ -186,9 +186,14 @@ function sendRemainingAndUpdateTimeout(user) {
 
 function updateTimeout(user, nextUpdate) {
   const currentDate = moment().utcOffset(user.timezone);
-  const msToUpdate = nextUpdate.diff(currentDate);
 
-  if (msToUpdate > 0) {
+  if (currentDate.isBefore(user.countdownDate)) {
+
+    if (currentDate.isSameOrAfter(nextUpdate)) {
+      nextUpdate = helpers.calculateNextRandomTime(user.timezone);
+    }
+
+    const msToUpdate = nextUpdate.diff(currentDate);
     TIMEOUTS[user.id] = setTimeout(sendRemainingAndUpdateTimeout, msToUpdate, user);
     user.nextUpdate = nextUpdate.valueOf();
   } else {
@@ -233,7 +238,7 @@ function sendTextMessage(recipientId, messageText) {
 
 module.exports = {
   receivedMessage,
-  recievedPostback,
+  receivedPostback,
   sendAction,
   sendTextMessage
 }

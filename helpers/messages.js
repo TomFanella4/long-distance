@@ -13,7 +13,7 @@ function loadIntervalsFromDB() {
   User.find().exec()
   .then(users => users.forEach(user => {
     if (user.nextUpdate) {
-      updateTimeout(user, moment(user.nextUpdate));
+      updateTimeout(user);
     }
   }))
   .catch(error => console.log(error));
@@ -181,13 +181,14 @@ function receivedPostback(event) {
 function sendRemainingAndUpdateTimeout(user) {
   const timeRemaining = helpers.calculateTimeLeft(user.countdownDate, user.significantOther);
   sendTextMessage(user.id, timeRemaining);
-  updateTimeout(user, helpers.calculateNextRandomTime(user.timezone));
+  updateTimeout(user);
 }
 
-function updateTimeout(user, nextUpdate) {
+function updateTimeout(user) {
   const currentDate = moment().utcOffset(user.timezone);
 
   if (currentDate.isBefore(user.countdownDate)) {
+    let nextUpdate = moment(user.nextUpdate);
 
     if (currentDate.isSameOrAfter(nextUpdate)) {
       nextUpdate = helpers.calculateNextRandomTime(user.timezone);
